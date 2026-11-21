@@ -39,7 +39,7 @@ jobs:
       - name: Extrair projeto Ryodan Cut
         run: |
           mkdir -p projeto
-          unzip -o RyodanCut_0.1_projeto.zip -d projeto
+          unzip -o RyodanCut_0.2_projeto.zip -d projeto
           ls -la projeto
 
       - name: Localizar projeto Android
