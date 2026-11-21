@@ -1,0 +1,70 @@
+
+name: Compilar Ryodan Cut APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Gerar APK Android
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extrair projeto Ryodan Cut
+        run: |
+          mkdir -p projeto
+          unzip -o RyodanCut_0.1_projeto.zip -d projeto
+          ls -la projeto
+
+      - name: Localizar projeto Android
+        id: localizar
+        run: |
+          if [ -f projeto/settings.gradle ]; then
+            echo "dir=projeto" >> "$GITHUB_OUTPUT"
+          elif [ -f projeto/ryodan_cut/settings.gradle ]; then
+            echo "dir=projeto/ryodan_cut" >> "$GITHUB_OUTPUT"
+          else
+            echo "ERRO: settings.gradle não encontrado"
+            find projeto -maxdepth 4 -type f
+            exit 1
+          fi
+
+      - name: Compilar APK
+        working-directory: ${{ steps.localizar.outputs.dir }}
+        run: |
+          gradle --no-daemon assembleDebug
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RyodanCut-0.1-APK
+          path: ${{ steps.localizar.outputs.dir }}/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+          
